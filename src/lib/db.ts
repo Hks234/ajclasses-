@@ -136,6 +136,7 @@ function mysqlPoolOptions(url: string) {
     connectionLimit: 10,
     waitForConnections: true,
     enableKeepAlive: true,
+    connectTimeout: 20000,
     remappedFrom: requested,
   };
   if (sslRequested) options.ssl = { minVersion: "TLSv1.2", rejectUnauthorized: true };
@@ -156,7 +157,21 @@ async function createMysqlPool(url: string) {
   return mysql.createPool(options);
 }
 
+async function tableCount() {
+  if (mode === "mysql") {
+    const tables = await allNow<Record<string, string>>("SHOW TABLES", []);
+    return tables.length;
+  }
+  const rows = await allNow<{ n: number }>("SELECT COUNT(*) AS n FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'", []);
+  return Number(rows[0]?.n || 0);
+}
+
 async function migrate() {
+  try {
+    if ((await tableCount()) >= 40) return;
+  } catch {
+    /* first boot — schema_migrations may not exist yet */
+  }
   for (const statement of schemaStatements) {
     try {
       await run(statement);

@@ -1,4 +1,4 @@
-import { insert, one, run } from "./db";
+import { insert, one } from "./db";
 import { now } from "./utils";
 import bcrypt from "bcryptjs";
 
@@ -67,8 +67,40 @@ const categories = [
   ["cs-professional", "CS Professional", "The professional level of the Company Secretary course."],
 ];
 
+async function ensureInitialAdmin(stamp: string) {
+  const adminEmail = process.env.ADMIN_INITIAL_EMAIL;
+  const adminPassword = process.env.ADMIN_INITIAL_PASSWORD;
+  if (!adminEmail || !adminPassword) return;
+  const existing = await one("SELECT id FROM users WHERE email = ?", [adminEmail.toLowerCase()]);
+  if (existing) return;
+  const userId = "admin-initial";
+  const passwordHash = bcrypt.hashSync(adminPassword, 12);
+  await insert("users", {
+    id: userId,
+    email: adminEmail.toLowerCase(),
+    mobile: null,
+    password_hash: passwordHash,
+    full_name: "AJ Classes Admin",
+    role: "admin",
+    status: "active",
+    email_verified: 1,
+    must_change_password: 1,
+    google_sub: null,
+    avatar_url: null,
+    created_at: stamp,
+    updated_at: stamp,
+    deleted_at: null,
+  });
+  await insert("admin_users", { user_id: userId, role_id: "super_admin", last_login_at: null });
+}
+
 export async function seed() {
   const stamp = now();
+  const already = await one("SELECT setting_key FROM website_settings WHERE setting_key = ?", ["institute_name"]);
+  if (already) {
+    await ensureInitialAdmin(stamp);
+    return;
+  }
   for (const [pid, description] of permissions) {
     const existing = await one("SELECT id FROM permissions WHERE id = ?", [pid]);
     if (!existing) await insert("permissions", { id: pid, description });
@@ -344,31 +376,5 @@ export async function seed() {
     }
   }
 
-  const adminEmail = process.env.ADMIN_INITIAL_EMAIL;
-  const adminPassword = process.env.ADMIN_INITIAL_PASSWORD;
-  if (adminEmail && adminPassword) {
-    const existing = await one("SELECT id FROM users WHERE email = ?", [adminEmail.toLowerCase()]);
-    if (!existing) {
-      const userId = "admin-initial";
-      const passwordHash = bcrypt.hashSync(adminPassword, 12);
-      await insert("users", {
-        id: userId,
-        email: adminEmail.toLowerCase(),
-        mobile: null,
-        password_hash: passwordHash,
-        full_name: "AJ Classes Admin",
-        role: "admin",
-        status: "active",
-        email_verified: 1,
-        must_change_password: 1,
-        google_sub: null,
-        avatar_url: null,
-        created_at: stamp,
-        updated_at: stamp,
-        deleted_at: null,
-      });
-      await insert("admin_users", { user_id: userId, role_id: "super_admin", last_login_at: null });
-    }
-  }
-  void run;
+  await ensureInitialAdmin(stamp);
 }
