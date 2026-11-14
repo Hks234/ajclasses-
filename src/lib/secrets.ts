@@ -32,8 +32,14 @@ function filePath() {
   return path.join(process.cwd(), "storage", "private", "integrations.json");
 }
 
+let ephemeralSecret: string | undefined;
+
 export function authSecret() {
   if (process.env.AUTH_SECRET) return process.env.AUTH_SECRET;
+  if (process.env.VERCEL) {
+    ephemeralSecret ??= randomBytes(32).toString("hex");
+    return ephemeralSecret;
+  }
   const file = path.join(process.cwd(), "data", "auth-secret");
   if (fs.existsSync(file)) return fs.readFileSync(file, "utf8").trim();
   const secret = randomBytes(32).toString("hex");

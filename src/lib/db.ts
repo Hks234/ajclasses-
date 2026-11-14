@@ -29,10 +29,29 @@ export function dbMode() {
   return mode;
 }
 
+function ensureDir(dir: string) {
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code === "EROFS" || code === "EPERM" || code === "EACCES") return;
+    throw error;
+  }
+}
+
 export function storageRoot() {
   const configured = process.env.VIDEO_STORAGE_PATH;
   if (configured) return path.resolve(/*turbopackIgnore: true*/ configured);
+  if (process.env.VERCEL) return path.join("/tmp", "ajclasses", "storage");
   return path.join(process.cwd(), "storage");
+}
+
+function sqlitePath() {
+  const dir = process.env.VERCEL
+    ? path.join("/tmp", "ajclasses", "data")
+    : path.join(process.cwd(), "data");
+  ensureDir(dir);
+  return path.join(dir, "ajclasses.db");
 }
 
 async function exec<T>(fn: () => Promise<T>): Promise<T> {
@@ -189,18 +208,17 @@ export async function ready() {
   phase = "init";
   initPromise = (async () => {
     const url = process.env.DATABASE_URL || "";
-    fs.mkdirSync(path.join(process.cwd(), "data"), { recursive: true });
+    ensureDir(path.join(process.cwd(), "data"));
     const root = storageRoot();
     for (const folder of ["course-videos", "hls", "media", "materials", "tmp", "private"]) {
-      fs.mkdirSync(path.join(/*turbopackIgnore: true*/ root, folder), { recursive: true });
+      ensureDir(path.join(/*turbopackIgnore: true*/ root, folder));
     }
     if (url.startsWith("mysql://") || url.startsWith("mysqls://")) {
       mode = "mysql";
       pool = await createMysqlPool(url);
     } else {
       mode = "sqlite";
-      const file = path.join(process.cwd(), "data", "ajclasses.db");
-      sqlite = new DatabaseSync(file);
+      sqlite = new DatabaseSync(sqlitePath());
       sqlite.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;");
     }
     await migrate();
