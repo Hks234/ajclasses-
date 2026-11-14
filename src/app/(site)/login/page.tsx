@@ -13,5 +13,5 @@ export default async function Page() {
   const session = await getSession();
   if (session?.role === "student") redirect("/student/dashboard");
   if (session?.role === "admin") redirect("/admin/dashboard");
-  return <><PageHero kicker="Students" title="Student Login" /><section className="container-aj max-w-lg py-12"><Suspense><LoginForm /></Suspense></section></>;
+  return <><PageHero kicker="Students" title="Student Login" /><section className="bg-paper py-12"><div className="container-aj max-w-lg"><Suspense><LoginForm /></Suspense></div></section></>;
 }

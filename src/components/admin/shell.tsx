@@ -6,8 +6,9 @@ import { FormEvent, useEffect, useState } from "react";
 import { ImageUploadField, MediaLibraryUpload } from "./image-upload";
 
 const links = [
-  ["dashboard", "Dashboard"], ["settings", "Website Settings"], ["branding", "Logo & Branding"], ["homepage", "Homepage"],
-  ["banners", "Promotional Banners"], ["courses", "Courses"], ["categories", "Categories"], ["batches", "Batches"],
+  ["dashboard", "Dashboard"], ["settings", "Website Settings"], ["branding", "Logo, Colours & Look"], ["homepage", "Homepage"],
+    ["faqs", "FAQs"], ["partners", "Partner Logos"], ["events", "Events & Highlights"],
+    ["banners", "Promotional Banners"], ["courses", "Courses"], ["categories", "Categories"], ["batches", "Batches (sell)"],
   ["subjects", "Subjects"], ["chapters", "Chapters"], ["videos", "Video Lectures"], ["storage", "Video Storage"],
   ["materials", "Notes & Materials"], ["test-series", "Test Series"], ["tests", "Tests & Questions"], ["students", "Students"],
   ["faculty", "Faculty"], ["achievements", "Achievements"], ["testimonials", "Testimonials"], ["enquiries", "Enquiries"],

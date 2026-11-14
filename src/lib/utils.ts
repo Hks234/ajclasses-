@@ -159,4 +159,11 @@ export function sameOrigin(req: Request) {
   return true;
 }
 
+export function hexToRgbChannels(hex: string, fallback: string) {
+  const match = /^#?([0-9a-f]{6})$/i.exec((hex || "").trim());
+  if (!match) return fallback;
+  const n = parseInt(match[1], 16);
+  return `${(n >> 16) & 255} ${(n >> 8) & 255} ${n & 255}`;
+}
+
 void scryptSync;

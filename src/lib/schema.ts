@@ -186,7 +186,7 @@ export const schemaStatements = [
     id VARCHAR(36) PRIMARY KEY,
     message TEXT NOT NULL,
     href VARCHAR(400),
-    bg_color VARCHAR(20) DEFAULT '#102A56',
+    bg_color VARCHAR(20) DEFAULT '#071A36',
     text_color VARCHAR(20) DEFAULT '#FFFFFF',
     start_at VARCHAR(40),
     end_at VARCHAR(40),
@@ -546,4 +546,45 @@ export const schemaStatements = [
   `CREATE INDEX IF NOT EXISTS idx_enquiries_status ON enquiries (status)`,
   `CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications (user_id)`,
   `CREATE INDEX IF NOT EXISTS idx_login_email ON login_attempts (email, created_at)`,
+];
+
+export const extraSchemaStatements = [
+  `CREATE TABLE IF NOT EXISTS faqs (
+    id VARCHAR(36) PRIMARY KEY,
+    question TEXT NOT NULL,
+    answer TEXT NOT NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    enabled INTEGER NOT NULL DEFAULT 1,
+    created_at VARCHAR(40) NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS partners (
+    id VARCHAR(36) PRIMARY KEY,
+    name VARCHAR(180) NOT NULL,
+    logo_url TEXT,
+    href VARCHAR(400),
+    kind VARCHAR(40) NOT NULL DEFAULT 'alumni',
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    enabled INTEGER NOT NULL DEFAULT 1
+  )`,
+  `CREATE TABLE IF NOT EXISTS site_events (
+    id VARCHAR(36) PRIMARY KEY,
+    title VARCHAR(200) NOT NULL,
+    subtitle TEXT,
+    body TEXT,
+    image_url TEXT,
+    href VARCHAR(400),
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    enabled INTEGER NOT NULL DEFAULT 1,
+    created_at VARCHAR(40) NOT NULL
+  )`,
+];
+
+export const columnPatches: [string, string, string][] = [
+  ["courses", "badge", "VARCHAR(80)"],
+  ["courses", "learning_mode", "TEXT"],
+  ["courses", "career_line", "TEXT"],
+  ["courses", "brochure_url", "TEXT"],
+  ["achievements", "city", "VARCHAR(120)"],
+  ["achievements", "paper", "VARCHAR(120)"],
+  ["achievements", "rank_line", "VARCHAR(180)"],
 ];

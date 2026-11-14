@@ -11,8 +11,8 @@ export default async function AboutPage() {
   const settings = await getSettings();
   return (
     <>
-      <PageHero kicker={settings.tagline || "AJ Classes"} title="About AJ Classes" text="Aditya Jhawar Education" />
-      <article className="container-aj prose-aj py-12 text-lg leading-8" dangerouslySetInnerHTML={{ __html: sanitizeHtml(settings.about_html || "") }} />
+      <PageHero kicker={settings.about_kicker || settings.tagline || "AJ Classes"} title={settings.about_title || "About AJ Classes"} text={settings.brand_line || "Aditya Jhawar Education"} />
+      <section className="bg-paper py-12"><article className="container-aj prose-aj text-lg leading-8" dangerouslySetInnerHTML={{ __html: sanitizeHtml(settings.about_html || "") }} /></section>
     </>
   );
 }

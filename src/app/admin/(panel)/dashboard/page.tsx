@@ -29,7 +29,13 @@ export default async function Dashboard() {
         <List title="Recent payments" rows={recentPayments.map((row) => `${row.status} · ₹${(row.amount_paise / 100).toFixed(2)}`)} />
         <List title="Recent enquiries" rows={recentEnquiries.map((row) => `${row.full_name} · ${row.status}`)} />
       </div>
-      <Link href="/admin/storage" className="mt-6 inline-block font-bold text-orange">Open video storage</Link>
+      <div className="mt-6 flex flex-wrap gap-4 text-sm font-bold">
+        <Link href="/admin/batches" className="text-orange">Sell a batch (set price and publish)</Link>
+        <Link href="/admin/courses" className="text-orange">Edit courses on the website</Link>
+        <Link href="/admin/homepage" className="text-orange">Edit homepage sections</Link>
+        <Link href="/admin/branding" className="text-orange">Logo and colours</Link>
+        <Link href="/admin/storage" className="text-orange">Video storage</Link>
+      </div>
     </div>
   );
 }

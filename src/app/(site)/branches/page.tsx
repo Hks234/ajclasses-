@@ -20,7 +20,7 @@ export default async function BranchesPage() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <PageHero kicker="Surat" title="Branch locations" text={settings.email} />
-      <section className="container-aj grid gap-6 py-12">
+      <section className="bg-paper py-12"><div className="container-aj grid gap-6">
         {branches.map((branch) => (
           <article key={branch.id} className="card grid gap-4 p-5 lg:grid-cols-2">
             <div>
@@ -35,7 +35,7 @@ export default async function BranchesPage() {
             <iframe title={branch.name} className="h-64 w-full rounded-2xl border-0" src={`https://maps.google.com/maps?q=${encodeURIComponent(branch.map_query || branch.address)}&z=15&output=embed`} />
           </article>
         ))}
-      </section>
+      </div></section>
     </>
   );
 }

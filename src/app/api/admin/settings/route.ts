@@ -9,6 +9,9 @@ const keys = new Set([
   "logo_url", "logo_dark_url", "logo_light_url", "favicon_url", "logo_height", "logo_bg", "completion_threshold",
   "lock_completed_lessons", "support_whatsapp", "seo_title", "seo_description", "footer_about", "about_html",
   "privacy_html", "terms_html", "refund_html", "stat_students", "stat_courses", "stat_faculty", "stat_years",
+  "hero_form_title", "trust_line", "shop_title", "shop_subtitle", "nav_courses_label", "nav_shop_label", "nav_resources_label", "nav_enquire_label",
+  "community_title", "community_subtitle", "counsellor_title", "counsellor_subtitle",
+  "color_plum", "color_purple", "color_orange",
 ]);
 
 export async function POST(req: Request) {
@@ -24,8 +27,8 @@ export async function POST(req: Request) {
   if (!body || typeof body !== "object") return bad("Nothing to save.");
   for (const [key, value] of Object.entries(body)) {
     if (!keys.has(key)) continue;
-    const allowed = key.startsWith("logo") || key === "favicon_url" ? brand.status === 200 || session.adminRole === "super_admin"
-      : key.startsWith("stat_") ? home.status === 200 || session.adminRole === "super_admin"
+    const allowed = key.startsWith("logo") || key === "favicon_url" || key.startsWith("color_") ? brand.status === 200 || session.adminRole === "super_admin"
+      : key.startsWith("stat_") || key.startsWith("shop_") || key.startsWith("nav_") || key === "hero_form_title" || key === "trust_line" ? home.status === 200 || auth.status === 200 || session.adminRole === "super_admin"
       : auth.status === 200 || session.adminRole === "super_admin";
     if (!allowed) continue;
     const existing = await one("SELECT setting_key FROM website_settings WHERE setting_key = ?", [key]);

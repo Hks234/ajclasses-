@@ -13,7 +13,7 @@ export default async function TestimonialsPage() {
   return (
     <>
       <PageHero kicker="Reviews" title="Testimonials" text="Approved reviews are published here. Demonstration cards are labelled." />
-      <section className="container-aj grid gap-8 py-12 lg:grid-cols-[1.2fr_.8fr]">
+      <section className="bg-paper py-12"><div className="container-aj grid gap-8 lg:grid-cols-[1.2fr_.8fr]">
         <div className="grid gap-4">
           {items.map((item) => (
             <article key={item.id} className="card p-5">
@@ -28,7 +28,7 @@ export default async function TestimonialsPage() {
           ))}
         </div>
         <ReviewForm />
-      </section>
+      </div></section>
     </>
   );
 }

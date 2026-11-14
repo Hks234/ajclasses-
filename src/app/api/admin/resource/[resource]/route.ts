@@ -5,7 +5,7 @@ import { all, insert, ready, run } from "@/lib/db";
 import { bad, json, originBlock } from "@/lib/http";
 import { clientIp, id, now, rupeesToPaise, slugify } from "@/lib/utils";
 
-const createdTables = new Set(["courses", "batches", "study_materials", "test_series", "tests", "testimonials", "announcements", "coupons", "media_assets", "promotional_banners", "users"]);
+const createdTables = new Set(["courses", "batches", "study_materials", "test_series", "tests", "testimonials", "announcements", "coupons", "media_assets", "promotional_banners", "users", "faqs", "site_events"]);
 const updatedTables = new Set(["courses", "users", "email_templates"]);
 
 function allowedValueTables(table: string) {

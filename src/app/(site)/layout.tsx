@@ -7,7 +7,7 @@ import { WhatsAppButton } from "@/components/widgets";
 export const dynamic = "force-dynamic";
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
-  let branding = { name: "AJ Classes", line: "Aditya Jhawar Education", tagline: "", email: "", phone: "", logoUrl: "", logoDark: "", logoLight: "", favicon: "", logoHeight: 52, logoBg: "transparent", instagram: "", facebook: "", youtube: "", linkedin: "", whatsapp: "", footer: "" };
+  let branding: any = { name: "AJ Classes", line: "Aditya Jhawar Education", tagline: "", email: "", phone: "", logoUrl: "", logoDark: "", logoLight: "", favicon: "", logoHeight: 52, logoBg: "transparent", instagram: "", facebook: "", youtube: "", linkedin: "", whatsapp: "", footer: "" };
   let courses: any[] = [];
   let branches: any[] = [];
   let bars: any[] = [];
@@ -19,7 +19,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
   }
   return (
     <>
-      <Header branding={branding} bar={bars[0]} />
+      <Header branding={branding} bar={bars[0]} courses={courses} />
       <main>{children}</main>
       <Footer branding={branding} courses={courses} branches={branches} />
       <WhatsAppButton phone={branding.whatsapp} />

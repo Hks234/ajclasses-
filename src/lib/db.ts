@@ -3,7 +3,7 @@ import path from "path";
 import { AsyncLocalStorage } from "async_hooks";
 import { DatabaseSync } from "node:sqlite";
 import mysql from "mysql2/promise";
-import { schemaStatements } from "./schema";
+import { columnPatches, extraSchemaStatements, schemaStatements } from "./schema";
 
 export type SqlValue = string | number | null;
 type Store = { inTx: boolean; conn?: mysql.PoolConnection };
@@ -185,20 +185,27 @@ async function tableCount() {
   return Number(rows[0]?.n || 0);
 }
 
+async function runSafe(statement: string) {
+  try {
+    await run(statement);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (/already exists|duplicate|Duplicate|duplicate column/i.test(message)) return;
+    throw error;
+  }
+}
+
 async function migrate() {
   try {
-    if ((await tableCount()) >= 40) return;
-  } catch {
-    /* first boot — schema_migrations may not exist yet */
-  }
-  for (const statement of schemaStatements) {
-    try {
-      await run(statement);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      if (/already exists|duplicate|Duplicate/i.test(message)) continue;
-      throw error;
+    if ((await tableCount()) < 40) {
+      for (const statement of schemaStatements) await runSafe(statement);
     }
+  } catch {
+    for (const statement of schemaStatements) await runSafe(statement);
+  }
+  for (const statement of extraSchemaStatements) await runSafe(statement);
+  for (const [table, column, type] of columnPatches) {
+    await runSafe(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
   }
 }
 

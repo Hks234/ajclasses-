@@ -1,4 +1,4 @@
-import { insert, one } from "./db";
+import { insert, one, run } from "./db";
 import { now } from "./utils";
 import bcrypt from "bcryptjs";
 
@@ -99,6 +99,7 @@ export async function seed() {
   const already = await one("SELECT setting_key FROM website_settings WHERE setting_key = ?", ["institute_name"]);
   if (already) {
     await ensureInitialAdmin(stamp);
+    await ensureSiteExtras(stamp);
     return;
   }
   for (const [pid, description] of permissions) {
@@ -182,10 +183,17 @@ export async function seed() {
       enabled: 1,
       sort_order: 1,
       extra_json: JSON.stringify({
+        highlight: "CA, CS & CMA",
+        form_title: "The right course can transform your future.",
         ctas: [
           { label: "Explore Our Courses", href: "/courses" },
           { label: "Enquire Now", href: "/enquiry" },
           { label: "Student Login", href: "/login" },
+        ],
+        trust: [
+          { label: "Classroom batches in Parvat Patiya, Vesu and Pal" },
+          { label: "Student portal for purchased lectures and notes" },
+          { label: "CA, CS and CMA programmes taught by Aditya Jhawar" },
         ],
       }),
     });
@@ -311,7 +319,7 @@ export async function seed() {
       id: "announce-bar",
       message: "Admissions open for CA, CS and CMA. Enquire for the current batch schedule.",
       href: "/enquiry",
-      bg_color: "#102A56",
+      bg_color: "#071A36",
       text_color: "#FFFFFF",
       start_at: null,
       end_at: null,
@@ -377,4 +385,251 @@ export async function seed() {
   }
 
   await ensureInitialAdmin(stamp);
+  await ensureSiteExtras(stamp);
+}
+
+async function ensureSiteExtras(stamp: string) {
+  const extraSettings: Record<string, string> = {
+    color_plum: "#071A36",
+    color_purple: "#1A4BCC",
+    color_orange: "#EE8F22",
+    shop_title: "Buy a published batch",
+    shop_subtitle: "Pay for a live batch and start learning in the student portal.",
+    nav_courses_label: "View Courses",
+    nav_shop_label: "Shop",
+    nav_resources_label: "Resources",
+    nav_enquire_label: "Enquire Now",
+    community_title: "Join Our Community",
+    community_subtitle: "Stay up to date on courses, batches and classroom updates.",
+    counsellor_title: "Our Counsellor Can Clear Any Confusion",
+    counsellor_subtitle: "Share your name, course interest and branch. The AJ Classes team will call you back.",
+    reviews_title: "Our Students Say We're Gamechangers",
+    reviews_kicker: "Reviews",
+    reviews_cta: "View More Testimonials",
+    faculty_section_title: "Industry Leaders Helping You Find The Way",
+    faculty_section_kicker: "Faculty",
+    faculty_section_cta: "View More",
+    awards_title: "Our Excellence Attested",
+    awards_kicker: "Recognition",
+    experts_title: "Contact Our Programme Experts",
+    why_kicker: "The AJ Classes Advantage",
+    about_title: "About AJ Classes",
+    about_kicker: "Aditya Jhawar Education",
+    courses_intro: "Nine coaching programmes. Fees appear only after a batch is published.",
+    faculty_page_title: "Industry Leaders Helping You Find The Way",
+    hero_form_title: "The right course can transform your future.",
+    trust_line: "Trusted coaching for CA, CS and CMA in Surat",
+    nav_resources_json: JSON.stringify([
+      { href: "/about", label: "About Us" },
+      { href: "/faculty", label: "Faculty" },
+      { href: "/achievements", label: "Achievements" },
+      { href: "/testimonials", label: "Testimonials" },
+      { href: "/test-series", label: "Test Series" },
+      { href: "/shop", label: "Shop" },
+      { href: "/branches", label: "Branches" },
+      { href: "/contact", label: "Contact" },
+      { href: "/login", label: "Student Login" },
+    ]),
+  };
+  for (const [key, value] of Object.entries(extraSettings)) {
+    const existing = await one<{ setting_key: string; setting_value: string }>(
+      "SELECT setting_key, setting_value FROM website_settings WHERE setting_key = ?",
+      [key],
+    );
+    if (!existing) {
+      await insert("website_settings", { setting_key: key, setting_value: value, updated_at: stamp });
+      continue;
+    }
+    if (
+      (key === "color_plum" && existing.setting_value.toLowerCase() === "#24082b") ||
+      (key === "color_purple" && existing.setting_value.toLowerCase() === "#6c1e74")
+    ) {
+      await run("UPDATE website_settings SET setting_value = ?, updated_at = ? WHERE setting_key = ?", [value, stamp, key]);
+    }
+  }
+
+  const extraSections: Array<Record<string, string | number>> = [
+    {
+      id: "section-programmes",
+      section_key: "programmes",
+      title: "Explore Our Programmes",
+      subtitle: "CA, CS and CMA coaching with classroom batches in Surat and an online student portal.",
+      body: "",
+      image_url: "",
+      cta_label: "View All Programmes",
+      cta_href: "/courses",
+      background: "",
+      enabled: 1,
+      sort_order: 3,
+      extra_json: JSON.stringify({ kicker: "Our Courses" }),
+    },
+    {
+      id: "section-alumni",
+      section_key: "alumni",
+      title: "Our Students Learn Here",
+      subtitle: "Logos and partner names appear when AJ Classes publishes them from the admin portal.",
+      body: "",
+      image_url: "",
+      cta_label: "",
+      cta_href: "",
+      background: "",
+      enabled: 1,
+      sort_order: 4,
+      extra_json: JSON.stringify({ kicker: "Classroom & Online" }),
+    },
+    {
+      id: "section-faqs",
+      section_key: "faqs",
+      title: "You Asked, We Answered",
+      subtitle: "Questions students usually ask before joining AJ Classes.",
+      body: "",
+      image_url: "",
+      cta_label: "",
+      cta_href: "",
+      background: "",
+      enabled: 1,
+      sort_order: 8,
+      extra_json: "{}",
+    },
+    {
+      id: "section-community",
+      section_key: "community",
+      title: "Join Our Community",
+      subtitle: "Stay up to date on courses, batches and events.",
+      body: "",
+      image_url: "",
+      cta_label: "Notify me",
+      cta_href: "/enquiry",
+      background: "",
+      enabled: 1,
+      sort_order: 9,
+      extra_json: "{}",
+    },
+    {
+      id: "section-counsellor",
+      section_key: "counsellor",
+      title: "Our Counsellor Can Clear Any Confusion",
+      subtitle: "Contact a programme desk or send an enquiry. Branch numbers are published by the institute.",
+      body: "",
+      image_url: "",
+      cta_label: "Enquire Now",
+      cta_href: "/enquiry",
+      background: "",
+      enabled: 1,
+      sort_order: 10,
+      extra_json: "{}",
+    },
+    {
+      id: "section-shop",
+      section_key: "shop",
+      title: "Buy a published batch",
+      subtitle: "Pay for a live batch and start learning in the student portal.",
+      body: "",
+      image_url: "",
+      cta_label: "Open the shop",
+      cta_href: "/shop",
+      background: "",
+      enabled: 1,
+      sort_order: 5,
+      extra_json: JSON.stringify({ kicker: "Shop" }),
+    },
+    {
+      id: "section-placement",
+      section_key: "placement",
+      title: "Classroom Coaching, Online Learning",
+      subtitle: "Figures on this row are published by AJ Classes from the admin portal.",
+      body: "",
+      image_url: "",
+      cta_label: "View Achievements",
+      cta_href: "/achievements",
+      background: "",
+      enabled: 1,
+      sort_order: 6,
+      extra_json: JSON.stringify({ kicker: "Results" }),
+    },
+    {
+      id: "section-events",
+      section_key: "events",
+      title: "Building Futures Beyond The Classroom",
+      subtitle: "Events and campus highlights published by AJ Classes.",
+      body: "",
+      image_url: "",
+      cta_label: "",
+      cta_href: "",
+      background: "",
+      enabled: 1,
+      sort_order: 7,
+      extra_json: JSON.stringify({ kicker: "Campus" }),
+    },
+    {
+      id: "section-reviews",
+      section_key: "reviews",
+      title: "Our Students Say We're Gamechangers",
+      subtitle: "Approved student reviews. Demonstration cards are labelled until genuine reviews are published.",
+      body: "",
+      image_url: "",
+      cta_label: "View More Testimonials",
+      cta_href: "/testimonials",
+      background: "",
+      enabled: 1,
+      sort_order: 11,
+      extra_json: JSON.stringify({ kicker: "Reviews" }),
+    },
+    {
+      id: "section-faculty-home",
+      section_key: "faculty_home",
+      title: "Industry Leaders Helping You Find The Way",
+      subtitle: "Faculty profiles are published from the admin portal.",
+      body: "",
+      image_url: "",
+      cta_label: "View More",
+      cta_href: "/faculty",
+      background: "",
+      enabled: 1,
+      sort_order: 12,
+      extra_json: JSON.stringify({ kicker: "Faculty" }),
+    },
+  ];
+  for (const section of extraSections) {
+    const existing = await one("SELECT id FROM homepage_sections WHERE section_key = ?", [section.section_key]);
+    if (!existing) await insert("homepage_sections", section);
+  }
+
+  const faqs: [string, string, string, number][] = [
+    ["faq-1", "Why should I choose AJ Classes for CA, CS and CMA?", "AJ Classes is the coaching institute of Aditya Jhawar for CA, CS and CMA, with classrooms in Surat and an online student portal for purchased batches. Faculty, fees and schedules are published from the admin dashboard.", 1],
+    ["faq-2", "How do I buy a course and start learning?", "Open Shop or a course page, choose a published batch with a fee, and complete checkout. After payment, lectures and notes appear in the student portal for that batch.", 2],
+    ["faq-3", "What learning support is provided?", "Purchased batches include recorded lectures, notes the institute uploads, and published test series. Classroom support is available at the Parvat Patiya, Vesu and Pal branches.", 3],
+    ["faq-4", "Is there a refund policy?", "Refund requests are reviewed against the policy published on the Refund Policy page. Write to the institute email with your registered address and payment reference.", 4],
+    ["faq-5", "How do I speak to a counsellor?", "Use Enquire Now, WhatsApp, or call the branch numbers listed on the Contact and Branches pages.", 5],
+  ];
+  for (const [id, question, answer, sort] of faqs) {
+    const existing = await one("SELECT id FROM faqs WHERE id = ?", [id]);
+    if (!existing) {
+      await insert("faqs", { id, question, answer, sort_order: sort, enabled: 1, created_at: stamp });
+    }
+  }
+
+  const heroRow = await one<any>("SELECT * FROM homepage_sections WHERE section_key = ?", ["hero"]);
+  if (heroRow) {
+    let extra: any = {};
+    try { extra = JSON.parse(heroRow.extra_json || "{}") || {}; } catch { extra = {}; }
+    if (!extra.trust) {
+      extra.highlight = extra.highlight || "CA, CS & CMA";
+      extra.form_title = extra.form_title || "The right course can transform your future.";
+      extra.trust = [
+        { label: "Classroom batches in Parvat Patiya, Vesu and Pal" },
+        { label: "Student portal for purchased lectures and notes" },
+        { label: "CA, CS and CMA programmes taught by Aditya Jhawar" },
+      ];
+      extra.ctas = extra.ctas || [
+        { label: heroRow.cta_label || "Explore Our Courses", href: heroRow.cta_href || "/courses" },
+        { label: "Enquire Now", href: "/enquiry" },
+      ];
+      await run("UPDATE homepage_sections SET extra_json = ? WHERE id = ?", [JSON.stringify(extra), heroRow.id]);
+    }
+  }
+  const bar = await one<any>("SELECT * FROM announcements WHERE id = ?", ["announce-bar"]);
+  if (bar && (!bar.bg_color || ["#24082b", "#24082B", "#102A56"].includes(bar.bg_color))) {
+    await run("UPDATE announcements SET bg_color = ? WHERE id = ?", ["#071A36", bar.id]);
+  }
 }

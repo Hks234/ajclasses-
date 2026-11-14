@@ -29,11 +29,18 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
       <PageHero kicker={course.category_name} title={course.name} text={course.description} />
       {course.banner ? <img src={course.banner} alt="" className="h-72 w-full object-cover" /> : null}
       <BannerSlider banners={banners} />
-      <section className="container-aj grid gap-8 py-12 lg:grid-cols-[1.2fr_.8fr]">
+      <section className="bg-paper">
+      <div className="container-aj grid gap-8 py-12 lg:grid-cols-[1.2fr_.8fr]">
         <div>
-          <h2 className="font-display text-3xl text-navy">Highlights</h2>
+          <div className="mb-6 flex flex-wrap gap-2">
+            {course.duration ? <span className="chip">{course.duration}</span> : null}
+            {course.learning_mode ? <span className="chip">{course.learning_mode}</span> : <span className="chip">Classroom & student portal</span>}
+            {course.career_line ? <span className="chip">{course.career_line}</span> : null}
+          </div>
+          <h2 className="font-display text-3xl text-plum">Highlights</h2>
           <ul className="mt-4 space-y-2">{highlights.map((item) => <li key={item} className="rounded-2xl bg-paper px-4 py-3 text-sm font-semibold">{item}</li>)}</ul>
-          <h2 className="mt-10 font-display text-3xl text-navy">Batches</h2>
+          {course.brochure_url ? <a href={course.brochure_url} className="btn-line mt-6">Download brochure</a> : null}
+          <h2 className="mt-10 font-display text-3xl text-plum">Batches you can buy</h2>
           <div className="mt-4 space-y-4">
             {batches.length ? batches.map((batch) => (
               <article key={batch.id} className="card p-5">
@@ -46,7 +53,8 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
                   <div className="text-right">
                     {batch.compare_at_paise > batch.price_paise ? <p className="text-sm text-slate-400 line-through">{inr(batch.compare_at_paise)}</p> : null}
                     <p className="text-2xl font-extrabold text-orange">{inr(batch.price_paise)}</p>
-                    <Link href={`/checkout/batch/${batch.id}`} className="btn-orange mt-3">Buy Now</Link>
+                    <Link href={batch.price_paise > 0 ? `/checkout/batch/${batch.id}` : "/enquiry"} className="btn-orange mt-3">{batch.price_paise > 0 ? "Buy Now" : "Enquire"}</Link>
+                    {batch.price_paise > 0 ? <Link href="/shop" className="mt-2 block text-sm font-semibold text-purple">See all shop batches</Link> : null}
                   </div>
                 </div>
               </article>
@@ -57,8 +65,10 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
           <p className="text-sm font-bold uppercase tracking-wider text-orange">Faculty</p>
           <p className="mt-2 text-xl font-extrabold">{teacher?.full_name || "AJ Classes faculty"}</p>
           <p className="text-sm text-slate-600">{teacher?.qualification}</p>
-          <Link href="/enquiry" className="btn-navy mt-5 w-full">Enquire Now</Link>
+          <Link href="/enquiry" className="btn-orange mt-5 w-full">Enquire Now</Link>
+          <Link href="/shop" className="btn-line mt-3 w-full">Buy a batch</Link>
         </aside>
+      </div>
       </section>
     </>
   );

@@ -7,3 +7,5 @@ storage
 .env.production
 *.log
 tsconfig.tsbuildinfo
+.vercel
+.env*

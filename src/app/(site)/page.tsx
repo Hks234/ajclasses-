@@ -1,169 +1,289 @@
 import Link from "next/link";
-import { ArrowRight, BookOpen, GraduationCap, MapPin, Phone } from "lucide-react";
-import { getAchievements, getAnnouncements, getBanners, getBranches, getCourses, getFaculty, getSection, getSettings, getTestimonials } from "@/lib/content";
+import { ArrowDown, MapPin, Phone } from "lucide-react";
+import { getAchievements, getBanners, getBranches, getCourses, getEvents, getFaculty, getFaqs, getPartners, getSection, getSettings, getShopItems, getTestimonials, parseExtra } from "@/lib/content";
 import { ready } from "@/lib/db";
 import { BannerSlider, EnquiryForm, Stats } from "@/components/widgets";
-import { initials, inr, telLink, waLink } from "@/lib/utils";
+import { telLink, waLink } from "@/lib/utils";
+import { HeroFloats, Reveal } from "@/components/motion";
+import { AchieverRail, CommunityForm, EventRail, FacultyRail, FaqList, LogoStrip, ProgrammeRail, ReviewRail, ShopRail } from "@/components/site-ui";
+import { accentLast, Kicker } from "@/components/heading";
 
 export const dynamic = "force-dynamic";
 
-const icons = ["01", "02", "03", "04", "05", "06", "07", "08"];
+function highlightTitle(title: string, highlight?: string) {
+  if (highlight && title.includes(highlight)) {
+    const [before, after] = title.split(highlight);
+    return <>{before}<span className="text-orange">{highlight}</span>{after}</>;
+  }
+  const match = title.match(/(CA, CS & CMA|CA · CS · CMA|CA, CS and CMA)/i);
+  if (match && match.index !== undefined) {
+    return <>{title.slice(0, match.index)}<span className="text-orange">{match[0]}</span>{title.slice(match.index + match[0].length)}</>;
+  }
+  const words = title.split(" ");
+  if (words.length > 3) {
+    return <>{words.slice(0, -3).join(" ")} <span className="text-orange">{words.slice(-3).join(" ")}</span></>;
+  }
+  return title;
+}
 
 export default async function HomePage() {
   await ready();
-  const [hero, why, courses, faculty, achievements, testimonials, settings, branches, topBanners, midBanners, updates] = await Promise.all([
-    getSection("hero"), getSection("why"), getCourses(), getFaculty(), getAchievements(), getTestimonials(), getSettings(), getBranches(), getBanners("home_top"), getBanners("home_mid"), getAnnouncements("update"),
+  const [hero, why, programmes, alumni, faqsSection, community, counsellor, shopSection, placement, eventsSection, reviewsSection, facultySection, courses, faculty, achievements, testimonials, settings, branches, topBanners, midBanners, shop, faqs, partners, events] = await Promise.all([
+    getSection("hero"), getSection("why"), getSection("programmes"), getSection("alumni"), getSection("faqs"), getSection("community"), getSection("counsellor"), getSection("shop"), getSection("placement"), getSection("events"), getSection("reviews"), getSection("faculty_home"),
+    getCourses(), getFaculty(), getAchievements(), getTestimonials(), getSettings(), getBranches(), getBanners("home_top"), getBanners("home_mid"), getShopItems(), getFaqs(), getPartners(), getEvents(),
   ]);
-  const ctas = hero?.extra_json ? JSON.parse(hero.extra_json).ctas || [] : [];
-  const features = why?.extra_json ? JSON.parse(why.extra_json) : [];
-  const stats = [
+  const extra = parseExtra(hero?.extra_json);
+  const ctas = extra.ctas || [];
+  const whyExtra = parseExtra(why?.extra_json);
+  const features = Array.isArray(whyExtra) ? whyExtra : [];
+  const trust = extra.trust || [
+    { label: settings.trust_line || "Trusted coaching for CA, CS and CMA" },
+    { label: "Classroom batches in Surat" },
+    { label: "Online student portal for purchased batches" },
+  ];
+  const heroStats = extra.stats || [
+    settings.stat_students ? { value: settings.stat_students, label: "Total Students" } : { value: String(branches.length || 3), label: "Surat Branches" },
+    settings.stat_courses ? { value: settings.stat_courses, label: "Courses Offered" } : { value: String(courses.length), label: "Courses Offered" },
+    settings.stat_faculty ? { value: settings.stat_faculty, label: "Expert Faculty" } : { value: String(faculty.length || 1), label: "Expert Faculty" },
+    settings.stat_years ? { value: settings.stat_years, label: "Years of Experience" } : { value: "CA · CS · CMA", label: "Professional Programmes" },
+  ];
+  const numericStats = [
     { label: "Total Students", value: settings.stat_students },
     { label: "Courses Offered", value: settings.stat_courses },
     { label: "Expert Faculty", value: settings.stat_faculty },
     { label: "Years of Experience", value: settings.stat_years },
   ].filter((item) => item.value && Number(item.value) > 0);
+  const formTitle = extra.form_title || settings.hero_form_title || "The right course can transform your future.";
+  const allCtas = ctas.length ? ctas : [{ label: hero?.cta_label || "Explore Our Courses", href: hero?.cta_href || "/courses" }];
+  const primaryCta = allCtas[0];
+  const secondaryCta = allCtas[1];
+  const alumniLogos = partners.filter((item) => item.kind === "alumni");
+  const universityLogos = partners.filter((item) => item.kind === "university");
+  const awardLogos = partners.filter((item) => item.kind === "award");
+  const programmeExtra = parseExtra(programmes?.extra_json);
+  const placementExtra = parseExtra(placement?.extra_json);
+  const placementStats = Array.isArray(placementExtra.stats) && placementExtra.stats.length ? placementExtra.stats : heroStats;
+
   return (
     <div>
-      <section className="hero-grid relative overflow-hidden bg-deep text-white">
-        <div className="container-aj grid items-center gap-12 py-16 lg:grid-cols-[1.15fr_.85fr] lg:py-24">
-          <div>
-            <p className="mb-4 text-sm font-bold uppercase tracking-[0.22em] text-orange">{settings.tagline || "Learn Today. Lead Tomorrow."}</p>
-            <h1 className="font-display text-5xl leading-[1.05] sm:text-6xl">{hero?.title}</h1>
-            <p className="mt-6 max-w-xl text-lg leading-8 text-white/75">{hero?.subtitle}</p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              {(ctas.length ? ctas : [{ label: "Explore Our Courses", href: "/courses" }]).map((cta: any, index: number) => (
-                <Link key={cta.href} href={cta.href} className={index === 0 ? "btn-orange" : "btn-ghost"}>{cta.label}</Link>
+      <section className="hero-grid">
+        {hero?.image_url ? <div className="hero-media"><img src={hero.image_url} alt="" /></div> : <div className="hero-media hero-orbs" />}
+        <div className="hero-net" />
+        <HeroFloats labels={courses.map((course) => course.name)} />
+        <div className="hero-inner container-aj py-12 lg:min-h-[540px] lg:py-16">
+          <Reveal className="max-w-[560px]">
+            <h1 className="font-display text-[40px] font-bold leading-[50px] tracking-[-0.02em] sm:text-[48px] sm:leading-[60px]">{highlightTitle(hero?.title || "Your Journey to CA, CS & CMA Starts Here.", extra.highlight)}</h1>
+            <p className="mt-5 max-w-[540px] text-[16px] leading-6 tracking-[-0.02em] text-white/90">{hero?.subtitle}</p>
+            <div className="mt-7 flex flex-wrap items-center gap-3">
+              <Link href={primaryCta.href} className="btn-ghost">
+                {primaryCta.label} <ArrowDown size={18} />
+              </Link>
+              {secondaryCta ? <Link href={secondaryCta.href} className="btn-ghost">{secondaryCta.label}</Link> : null}
+            </div>
+            <div className="mt-8 space-y-3 text-[15px] font-medium">
+              {trust.map((item: any, index: number) => (
+                <p key={index} className="flex items-center gap-2.5">
+                  <span className="text-orange">★</span> {item.label || item}
+                </p>
+              ))}
+            </div>
+          </Reveal>
+        </div>
+        <Reveal delay={120} className="hero-form-dock mx-4 mb-8 lg:mx-0 lg:mb-0">
+          <div className="w-full max-w-[300px] rounded-[10px] bg-white p-4 text-ink shadow-lift">
+            <EnquiryForm courses={courses} branches={branches} source="hero" variant="hero" title={formTitle} />
+          </div>
+        </Reveal>
+        <div className="hero-inner">
+          <div className="container-aj grid gap-6 py-8 sm:grid-cols-2 lg:grid-cols-4">
+            {heroStats.map((item: any, index: number) => (
+              <div key={item.label} className={`px-4 ${index ? "lg:border-l lg:border-white/20" : ""}`}>
+                <p className="stat-number">{item.value}</p>
+                <p className="stat-label">{item.label}</p>
+              </div>
+            ))}
+          </div>
+          <div className="stats-line" />
+        </div>
+      </section>
+
+      <BannerSlider banners={topBanners} />
+
+      <section id="programmes" className="bg-plum py-16 text-white">
+        <div className="container-aj text-center">
+          <Kicker>{programmeExtra.kicker || "Our Courses"}</Kicker>
+          <h2 className="mt-4 font-display text-[32px] font-normal leading-10 text-white">{accentLast(programmes?.title || "Explore Our Programmes")}</h2>
+          <p className="mx-auto mt-3 max-w-2xl text-white/70">{programmes?.subtitle}</p>
+        </div>
+        <div className="container-aj">
+          <ProgrammeRail courses={courses} />
+          <div className="mt-4 text-center">
+            <Link href={programmes?.cta_href || "/courses"} className="btn-ghost">{programmes?.cta_label || "View All Programmes"}</Link>
+          </div>
+        </div>
+      </section>
+
+      {shopSection ? (
+        <section className="bg-plum pb-16 text-white">
+          <div className="container-aj text-center">
+            <Kicker>{parseExtra(shopSection.extra_json).kicker || "Shop"}</Kicker>
+            <h2 className="mt-4 font-display text-[32px] font-normal leading-10">{accentLast(shopSection.title || settings.shop_title || "Buy a published batch")}</h2>
+            <p className="mx-auto mt-3 max-w-2xl text-white/70">{shopSection.subtitle || settings.shop_subtitle}</p>
+          </div>
+          <div className="container-aj mt-4">
+            <ShopRail items={shop} />
+            <div className="mt-6 text-center"><Link href={shopSection.cta_href || "/shop"} className="btn-orange">{shopSection.cta_label || "Open the shop"}</Link></div>
+          </div>
+        </section>
+      ) : null}
+
+      <section className="bg-white py-16">
+        <div className="container-aj text-center">
+          <Kicker dark>{parseExtra(alumni?.extra_json).kicker || "Classroom & Online"}</Kicker>
+          <h2 className="mt-4 font-display text-[32px] font-normal leading-10 text-plum">{accentLast(alumni?.title || "Our Students Learn Here")}</h2>
+          <p className="mx-auto mt-3 max-w-2xl text-slate-600">{alumni?.subtitle}</p>
+        </div>
+        {alumniLogos.length ? <LogoStrip items={alumniLogos} /> : null}
+        {universityLogos.length ? <LogoStrip items={universityLogos} /> : null}
+      </section>
+
+      {placement ? (
+        <section className="bg-plum py-16 text-white">
+          <div className="container-aj grid items-start gap-10 lg:grid-cols-[.9fr_1.1fr]">
+            <div>
+              <Kicker>{placementExtra.kicker || "Results"}</Kicker>
+              <h2 className="mt-4 font-display text-[32px] font-normal leading-10">{accentLast(placement.title)}</h2>
+              <p className="mt-3 text-white/70">{placement.subtitle}</p>
+              {placement.cta_href ? <Link href={placement.cta_href} className="btn-ghost mt-6">{placement.cta_label || "View more"}</Link> : null}
+            </div>
+            <div className="grid gap-6 sm:grid-cols-2">
+              {placementStats.map((item: any) => (
+                <div key={item.label} className="rounded-[12px] bg-white/5 p-5">
+                  <p className="text-sm text-white/70">{item.label}</p>
+                  <p className="mt-2 font-display text-[32px] font-bold leading-8 tracking-[-0.02em]">{item.value}</p>
+                </div>
               ))}
             </div>
           </div>
-          <div className="relative">
-            {hero?.image_url ? <img src={hero.image_url} alt="AJ Classes" className="h-[460px] w-full rounded-[2rem] object-cover" /> : (
-              <div className="floaty rounded-[2rem] border border-white/10 bg-white/5 p-6 backdrop-blur">
-                <div className="rounded-[1.5rem] bg-navy p-6">
-                  <p className="text-sm uppercase tracking-[0.18em] text-orange">Aditya Jhawar Education</p>
-                  <p className="mt-3 font-display text-4xl">CA · CS · CMA</p>
-                  <p className="mt-3 text-sm text-white/70">Surat classrooms and an online student portal for purchased batches.</p>
-                </div>
-                <div className="mt-4 grid grid-cols-2 gap-3">
-                  {["CA Foundation", "CA Intermediate", "CS Executive", "CMA Final"].map((item) => <div key={item} className="rounded-2xl bg-white px-4 py-4 text-sm font-bold text-navy">{item}</div>)}
-                </div>
-              </div>
-            )}
+          <div className="container-aj mt-10">
+            <AchieverRail items={achievements.slice(0, 8)} />
           </div>
-        </div>
-      </section>
-      <BannerSlider banners={topBanners} />
-      <section className="bg-paper py-16">
-        <div className="container-aj">
-          <div className="mb-8 flex items-end justify-between gap-4">
-            <div><p className="text-sm font-bold uppercase tracking-[0.18em] text-orange">Programmes</p><h2 className="font-display text-4xl text-navy">Courses</h2></div>
-            <Link href="/courses" className="btn-line">View all</Link>
+        </section>
+      ) : null}
+
+      {awardLogos.length ? (
+        <section className="bg-white py-12">
+          <div className="container-aj text-center">
+            <Kicker dark>{settings.awards_kicker || "Recognition"}</Kicker>
+            <h2 className="mt-4 font-display text-[32px] font-normal leading-10 text-plum">{accentLast(settings.awards_title || "Our Excellence Attested")}</h2>
           </div>
-          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {courses.map((course) => (
-              <article key={course.id} className="card overflow-hidden">
-                <div className="flex h-36 items-end bg-navy p-5 text-white" style={course.thumbnail ? { backgroundImage: `linear-gradient(transparent, #081B38), url(${course.thumbnail})`, backgroundSize: "cover" } : undefined}>
-                  <p className="text-sm font-semibold text-orange">{course.category_name}</p>
-                </div>
-                <div className="p-5">
-                  <h3 className="text-xl font-extrabold text-navy">{course.name}</h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">{course.description}</p>
-                  <p className="mt-4 text-sm font-semibold">{Number(course.batch_count) ? `${course.batch_count} published batch${Number(course.batch_count) === 1 ? "" : "es"}` : "Batches announced by the institute"}</p>
-                  <p className="mt-1 text-lg font-extrabold text-orange">{course.start_price ? `From ${inr(Number(course.start_price))}` : "Enquire for fees"}</p>
-                  <Link href={`/courses/${course.slug}`} className="btn-navy mt-4">Explore Course <ArrowRight size={16} /></Link>
-                </div>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
+          <LogoStrip items={awardLogos} />
+        </section>
+      ) : null}
+
       <BannerSlider banners={midBanners} />
+
       {why ? (
-        <section className="py-16">
+        <section className="bg-plum py-16 text-white">
           <div className="container-aj">
-            <h2 className="font-display text-4xl text-navy">{why.title}</h2>
-            <p className="mt-2 text-slate-600">{why.subtitle}</p>
-            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Reveal className="text-center">
+              <Kicker>{parseExtra(why.extra_json).kicker || settings.why_kicker || "The AJ Classes Advantage"}</Kicker>
+              <h2 className="mt-4 font-display text-[32px] font-normal leading-10">{accentLast(why.title)}</h2>
+              <p className="mx-auto mt-2 max-w-2xl text-white/70">{why.subtitle}</p>
+            </Reveal>
+            <div className="mt-10 space-y-8">
               {features.map((feature: any, index: number) => (
-                <article key={feature.title} className="card p-5">
-                  <p className="text-sm font-extrabold text-orange">{icons[index]}</p>
-                  <h3 className="mt-3 text-lg font-extrabold text-navy">{feature.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">{feature.body}</p>
-                </article>
+                <Reveal key={feature.title} delay={index * 40}>
+                  <article className={`advantage-card rounded-[18px] bg-white p-5 text-ink ${index % 2 ? "reverse" : ""}`}>
+                    <div className="overflow-hidden rounded-[12px] bg-paper">
+                      {feature.image ? <img src={feature.image} alt="" className="h-64 w-full object-cover" /> : <div className="flex h-64 items-center justify-center font-display text-6xl font-bold text-orange">{String(index + 1).padStart(2, "0")}</div>}
+                    </div>
+                    <div>
+                      <h3 className="font-display text-2xl font-semibold text-plum">{feature.title}</h3>
+                      <p className="mt-3 text-sm leading-7 text-slate-600">{feature.body}</p>
+                    </div>
+                  </article>
+                </Reveal>
               ))}
             </div>
           </div>
         </section>
       ) : null}
-      <section className="bg-navy py-16 text-white">
-        <div className="container-aj">
-          <h2 className="font-display text-4xl">Achievements</h2>
-          {achievements.length ? (
-            <div className="mt-8 grid gap-4 md:grid-cols-3">
-              {achievements.slice(0, 6).map((item) => (
-                <article key={item.id} className="rounded-3xl bg-white/10 p-5">
-                  {item.image_url ? <img src={item.image_url} alt="" className="mb-4 h-40 w-full rounded-2xl object-cover" /> : null}
-                  <h3 className="text-xl font-bold">{item.title}</h3>
-                  <p className="mt-2 text-sm text-white/75">{item.description}</p>
-                </article>
-              ))}
+
+      {reviewsSection ? (
+        <section className="bg-paper py-16">
+          <div className="container-aj">
+            <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <Kicker dark>{parseExtra(reviewsSection.extra_json).kicker || settings.reviews_kicker || "Reviews"}</Kicker>
+                <h2 className="mt-3 font-display text-[32px] font-normal leading-10 text-plum">{accentLast(reviewsSection.title || settings.reviews_title || "Our Students Say We're Gamechangers")}</h2>
+              </div>
+              <Link href={reviewsSection.cta_href || "/testimonials"} className="font-semibold text-orange">{reviewsSection.cta_label || settings.reviews_cta || "View More Testimonials"}</Link>
             </div>
-          ) : <p className="mt-4 max-w-2xl text-white/75">Achievements will appear here when AJ Classes publishes them from the admin dashboard.</p>}
-        </div>
-      </section>
-      <section className="py-16">
-        <div className="container-aj">
-          <h2 className="font-display text-4xl text-navy">Learn from Our Expert Faculty</h2>
-          <div className="mt-8 grid gap-5 md:grid-cols-3">
-            {faculty.map((person) => (
-              <article key={person.id} className="card p-5">
-                {person.photo_url ? <img src={person.photo_url} alt={person.full_name} className="h-56 w-full rounded-2xl object-cover" /> : <div className="flex h-56 items-center justify-center rounded-2xl bg-cream text-4xl font-extrabold text-navy">{initials(person.full_name)}</div>}
-                <h3 className="mt-4 text-xl font-extrabold">{person.full_name}</h3>
-                <p className="text-sm font-semibold text-orange">{person.qualification}</p>
-                <p className="mt-2 text-sm leading-6 text-slate-600">{person.biography}</p>
-              </article>
-            ))}
+            {testimonials.some((item) => item.is_demo) ? <p className="mb-4 rounded-[10px] bg-cream px-4 py-3 text-sm font-semibold text-plum">Demonstration cards are shown until genuine student reviews are approved. They are not verified reviews.</p> : null}
+            <ReviewRail items={testimonials.slice(0, 8)} />
           </div>
-        </div>
-      </section>
-      <section className="bg-paper py-16">
-        <div className="container-aj">
-          <div className="mb-6 flex items-end justify-between"><h2 className="font-display text-4xl text-navy">Student voices</h2><Link href="/testimonials" className="font-bold text-orange">All testimonials</Link></div>
-          {testimonials.some((item) => item.is_demo) ? <p className="mb-4 rounded-2xl bg-cream px-4 py-3 text-sm font-semibold text-navy">Demonstration cards are shown until genuine student reviews are approved. They are not verified reviews.</p> : null}
-          <div className="grid gap-4 md:grid-cols-3">
-            {testimonials.slice(0, 6).map((item) => (
-              <article key={item.id} className="card p-5">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-navy font-bold text-white">{initials(item.student_name)}</div>
-                  <div><p className="font-bold">{item.student_name}</p><p className="text-xs text-slate-500">{item.course_name}</p></div>
-                </div>
-                {item.rating ? <p className="mt-3 text-orange">{"★".repeat(Number(item.rating))}</p> : null}
-                <p className="mt-3 text-sm leading-6 text-slate-600">{item.review_text}</p>
-              </article>
-            ))}
+        </section>
+      ) : null}
+
+      {facultySection ? (
+        <section className="bg-plum py-16 text-white">
+          <div className="container-aj">
+            <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <Kicker>{parseExtra(facultySection.extra_json).kicker || settings.faculty_section_kicker || "Faculty"}</Kicker>
+                <h2 className="mt-3 font-display text-[32px] font-normal leading-10">{accentLast(facultySection.title || settings.faculty_section_title || "Industry Leaders Helping You Find The Way")}</h2>
+              </div>
+              <Link href={facultySection.cta_href || "/faculty"} className="text-orange">{facultySection.cta_label || settings.faculty_section_cta || "View More"}</Link>
+            </div>
+            <FacultyRail faculty={faculty} />
           </div>
-        </div>
-      </section>
-      {stats.length ? <section className="py-16"><div className="container-aj"><Stats items={stats} /></div></section> : null}
-      <section className="py-8">
-        <div className="container-aj grid gap-4 md:grid-cols-2">
-          {updates.map((item) => <article key={item.id} className="card p-5"><p className="text-xs font-bold uppercase tracking-wider text-orange">Update</p><p className="mt-2 font-semibold text-navy">{item.message}</p>{item.href ? <Link href={item.href} className="mt-3 inline-block font-bold text-orange">Read more</Link> : null}</article>)}
-        </div>
-      </section>
+        </section>
+      ) : null}
+
+      {eventsSection ? (
+        <section className="bg-plum py-16 text-white">
+          <div className="container-aj">
+            <Kicker>{parseExtra(eventsSection.extra_json).kicker || "Campus"}</Kicker>
+            <h2 className="mt-4 font-display text-[32px] font-normal leading-10">{accentLast(eventsSection.title)}</h2>
+            <p className="mt-3 max-w-2xl text-white/70">{eventsSection.subtitle}</p>
+            <div className="mt-8"><EventRail items={events} /></div>
+          </div>
+        </section>
+      ) : null}
+
+      {!placement && numericStats.length ? <section className="py-16"><div className="container-aj"><Stats items={numericStats} /></div></section> : null}
+
+      {faqs.length ? (
+        <section className="bg-white py-16">
+          <div className="container-aj grid items-start gap-10 lg:grid-cols-[.9fr_1.1fr]">
+            <div>
+              <Kicker dark>FAQ</Kicker>
+              <h2 className="mt-4 font-display text-[32px] font-normal leading-10 text-plum">{accentLast(faqsSection?.title || "You Asked, We Answered")}</h2>
+              <p className="mt-3 text-slate-600">{faqsSection?.subtitle}</p>
+            </div>
+            <FaqList items={faqs} />
+          </div>
+        </section>
+      ) : null}
+
+      {counsellor ? (
       <section className="bg-cream py-16">
         <div className="container-aj grid gap-8 lg:grid-cols-2">
           <div>
-            <h2 className="font-display text-4xl text-navy">Enquire Now</h2>
-            <p className="mt-3 text-slate-600">Tell us the course and branch you prefer. The enquiry is saved for the AJ Classes team.</p>
+            <Kicker dark>{parseExtra(counsellor.extra_json).kicker || "Enquire"}</Kicker>
+            <h2 className="mt-4 font-display text-[32px] font-normal leading-10 text-plum">{accentLast(counsellor.title || settings.counsellor_title || "Our Counsellor Can Clear Any Confusion")}</h2>
+            <p className="mt-3 text-slate-600">{counsellor.subtitle || settings.counsellor_subtitle}</p>
             <div className="mt-6"><EnquiryForm courses={courses} branches={branches} /></div>
           </div>
           <div className="space-y-4">
+            <h3 className="font-display text-2xl font-semibold text-plum">{settings.experts_title || "Contact Our Programme Experts"}</h3>
             {branches.map((branch) => (
               <article key={branch.id} className="card p-5">
-                <p className="flex items-center gap-2 font-extrabold text-navy"><MapPin size={16} className="text-orange" />{branch.name}</p>
+                <p className="flex items-center gap-2 font-display font-semibold text-plum"><MapPin size={16} className="text-orange" />{branch.name}</p>
                 <p className="mt-2 text-sm leading-6 text-slate-600">{branch.address}</p>
-                <div className="mt-3 flex gap-3 text-sm font-bold">
-                  <a className="text-navy" href={telLink(branch.phone)}><Phone size={14} className="inline" /> Call</a>
+                <div className="mt-3 flex gap-3 text-sm font-semibold">
+                  <a className="text-plum" href={telLink(branch.phone)}><Phone size={14} className="inline" /> {branch.phone}</a>
                   <a className="text-orange" href={waLink(branch.whatsapp || branch.phone, "Hello AJ Classes")}>WhatsApp</a>
                   <Link href={`/enquiry?branch=${branch.id}`}>Enquire</Link>
                 </div>
@@ -172,7 +292,17 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
-      <div className="hidden"><BookOpen /><GraduationCap /></div>
+      ) : null}
+
+      {community ? (
+        <section className="bg-plum py-12 text-white lg:hidden">
+          <div className="container-aj">
+            <h2 className="font-display text-3xl font-bold">{community.title}</h2>
+            <p className="mt-2 text-white/70">{community.subtitle}</p>
+            <div className="mt-5"><CommunityForm title={community.cta_label} /></div>
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

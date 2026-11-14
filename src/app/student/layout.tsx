@@ -13,7 +13,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
   if (!session || session.role !== "student") redirect("/login?next=/student/dashboard");
   return (
     <div className="min-h-screen bg-paper md:grid md:grid-cols-[240px_1fr]">
-      <aside className="bg-navy text-white">
+      <aside className="bg-plum text-white">
         <div className="px-5 py-6"><p className="text-xl font-extrabold">AJ Classes</p><p className="text-sm text-orange">{session.fullName}</p>{!session.emailVerified ? <p className="mt-2 text-xs">Verify your email before buying a course.</p> : null}</div>
         <nav className="space-y-1 px-3 pb-6">{links.map(([href, label]) => <Link key={href} href={href} className="block rounded-xl px-3 py-2 text-sm font-semibold text-white/85 hover:bg-white/10">{label}</Link>)}</nav>
         <div className="px-5 pb-6"><StudentSignOut /></div>

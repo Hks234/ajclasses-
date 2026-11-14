@@ -9,7 +9,7 @@ export async function Policy({ settingKey, title }: { settingKey: string; title:
   return (
     <>
       <PageHero kicker="AJ Classes" title={title} />
-      <article className="container-aj max-w-3xl py-12 leading-8" dangerouslySetInnerHTML={{ __html: sanitizeHtml(settings[settingKey] || "") }} />
+      <section className="bg-paper py-12"><article className="container-aj max-w-3xl leading-8" dangerouslySetInnerHTML={{ __html: sanitizeHtml(settings[settingKey] || "") }} /></section>
     </>
   );
 }
