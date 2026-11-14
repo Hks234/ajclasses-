@@ -8,13 +8,7 @@ export async function POST(req: Request) {
   if (blocked) return blocked;
   await ready();
 
-  let auth = await requireAdmin("media.manage");
-  if (auth.status !== 200 || !auth.session) {
-    auth = await requireAdmin("branding.manage");
-  }
-  if (auth.status !== 200 || !auth.session) {
-    auth = await requireAdmin("content.manage");
-  }
+  const auth = await requireAdmin();
   if (auth.status !== 200 || !auth.session) {
     return bad(
       auth.status === 401 ? "Sign in required." : "You do not have access.",

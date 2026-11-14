@@ -84,20 +84,24 @@ export async function GET(req: Request, ctx: { params: Promise<{ resource: strin
   }
   const sqlWhere = where.length ? ` WHERE ${where.join(" AND ")}` : "";
   const columns = Array.from(new Set(["id", ...resource.columns, ...resource.fields.map((field) => field.name)]));
-  const totalRow = await all<any>(`SELECT COUNT(*) AS c FROM ${resource.table}${sqlWhere}`, params);
-  const rows = await all<any>(`SELECT ${columns.join(",")} FROM ${resource.table}${sqlWhere} ORDER BY ${resource.orderBy} LIMIT 20 OFFSET ?`, [...params, (page - 1) * 20]);
-  const fields = [];
-  for (const field of resource.fields) fields.push({ ...field, options: await fieldOptions(field), optionsFrom: undefined });
-  return json({
-    title: resource.title,
-    readOnly: Boolean(resource.readOnly),
-    allowCreate: resource.allowCreate !== false && !resource.readOnly,
-    allowDelete: resource.allowDelete !== false && !resource.readOnly,
-    fields,
-    rows: rows.map((row) => present(resource, row)),
-    total: Number(totalRow[0]?.c || 0),
-    page,
-  });
+  try {
+    const totalRow = await all<any>(`SELECT COUNT(*) AS c FROM ${resource.table}${sqlWhere}`, params);
+    const rows = await all<any>(`SELECT ${columns.join(",")} FROM ${resource.table}${sqlWhere} ORDER BY ${resource.orderBy} LIMIT 20 OFFSET ?`, [...params, (page - 1) * 20]);
+    const fields = [];
+    for (const field of resource.fields) fields.push({ ...field, options: await fieldOptions(field), optionsFrom: undefined });
+    return json({
+      title: resource.title,
+      readOnly: Boolean(resource.readOnly),
+      allowCreate: resource.allowCreate !== false && !resource.readOnly,
+      allowDelete: resource.allowDelete !== false && !resource.readOnly,
+      fields,
+      rows: rows.map((row) => present(resource, row)),
+      total: Number(totalRow[0]?.c || 0),
+      page,
+    });
+  } catch (error) {
+    return bad(error instanceof Error ? error.message : "Could not load this section.", 500);
+  }
 }
 
 export async function POST(req: Request, ctx: { params: Promise<{ resource: string }> }) {
@@ -116,8 +120,11 @@ export async function POST(req: Request, ctx: { params: Promise<{ resource: stri
       if (field.required && !(field.name in data)) return bad(`${field.label} is required.`);
     }
     const rowId = id();
-    if (createdTables.has(resource.table)) data.created_at = now();
+    if (createdTables.has(resource.table)) data.created_at = data.created_at ?? now();
     if (updatedTables.has(resource.table)) data.updated_at = now();
+    if (resource.table === "courses" && !data.status) data.status = "draft";
+    if (resource.table === "batches" && !data.status) data.status = "draft";
+    if (resource.table === "test_series" && !data.status) data.status = "draft";
     if (resource.table === "courses" || resource.table === "batches" || resource.table === "test_series") data.deleted_at = null;
     if (resource.table === "batches") data.seats_sold = 0;
     if (resource.table === "coupons") data.code = String(data.code || "").toUpperCase();

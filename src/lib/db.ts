@@ -31,7 +31,7 @@ export function dbMode() {
 
 export function storageRoot() {
   const configured = process.env.VIDEO_STORAGE_PATH;
-  if (configured) return path.resolve(configured);
+  if (configured) return path.resolve(/*turbopackIgnore: true*/ configured);
   return path.join(process.cwd(), "storage");
 }
 
@@ -192,7 +192,7 @@ export async function ready() {
     fs.mkdirSync(path.join(process.cwd(), "data"), { recursive: true });
     const root = storageRoot();
     for (const folder of ["course-videos", "hls", "media", "materials", "tmp", "private"]) {
-      fs.mkdirSync(path.join(root, folder), { recursive: true });
+      fs.mkdirSync(path.join(/*turbopackIgnore: true*/ root, folder), { recursive: true });
     }
     if (url.startsWith("mysql://") || url.startsWith("mysqls://")) {
       mode = "mysql";

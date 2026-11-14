@@ -141,14 +141,22 @@ export function clientIp(req: Request) {
 }
 
 export function sameOrigin(req: Request) {
-  const origin = req.headers.get("origin");
   const host = req.headers.get("host");
-  if (!origin || !host) return false;
-  try {
-    return new URL(origin).host === host;
-  } catch {
-    return false;
-  }
+  if (!host) return false;
+  const site = (req.headers.get("sec-fetch-site") || "").toLowerCase();
+  if (site === "same-origin" || site === "none") return true;
+  const matchesHost = (value: string) => {
+    try {
+      return new URL(value).host === host;
+    } catch {
+      return false;
+    }
+  };
+  const origin = req.headers.get("origin");
+  if (origin) return matchesHost(origin);
+  const referer = req.headers.get("referer");
+  if (referer) return matchesHost(referer);
+  return true;
 }
 
 void scryptSync;

@@ -2,17 +2,16 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 async function post(action: string, body: Record<string, unknown>) {
   const res = await fetch(`/api/auth/${action}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Request failed");
-  return data;
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error((data as { error?: string }).error || "Request failed");
+  return data as Record<string, any>;
 }
 
 export function LoginForm({ portal = "student" }: { portal?: "student" | "admin" }) {
-  const router = useRouter();
   const params = useSearchParams();
   const [error, setError] = useState(params.get("error") === "google" ? "Google sign-in could not be completed." : "");
   const [pending, setPending] = useState(false);
@@ -22,9 +21,10 @@ export function LoginForm({ portal = "student" }: { portal?: "student" | "admin"
     const form = new FormData(event.currentTarget);
     try {
       const data = await post("login", { email: form.get("email"), password: form.get("password"), portal });
-      if (data.mustChangePassword && portal === "admin") router.push("/admin/security");
-      else router.push(portal === "admin" ? "/admin/dashboard" : (params.get("next") || "/student/dashboard"));
-      router.refresh();
+      const next = params.get("next") || "/student/dashboard";
+      const target = data.mustChangePassword && portal === "admin" ? "/admin/security" : portal === "admin" ? "/admin/dashboard" : next;
+      window.location.assign(target);
+      return;
     } catch (err) { setError(err instanceof Error ? err.message : "Login failed"); }
     setPending(false);
   }

@@ -1,11 +1,32 @@
 import { cookies } from "next/headers";
+import type { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { all, insert, one, run } from "./db";
 import { authSecret } from "./secrets";
 import { id, now, randomToken, sha256 } from "./utils";
 
-const COOKIE = "aj_session";
+export const SESSION_COOKIE = "aj_session";
 const DAY = 60 * 60 * 24;
+
+export function sessionCookieOptions(maxAge = 14 * DAY) {
+  return {
+    httpOnly: true,
+    sameSite: "lax" as const,
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge,
+  };
+}
+
+export function applySessionCookie(res: NextResponse, token: string) {
+  res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions());
+  return res;
+}
+
+export function clearSessionCookie(res: NextResponse) {
+  res.cookies.set(SESSION_COOKIE, "", sessionCookieOptions(0));
+  return res;
+}
 
 export type SessionUser = {
   id: string;
@@ -31,7 +52,7 @@ export async function checkPassword(password: string, hash: string) {
   return bcrypt.compare(password, hash);
 }
 
-export async function createSession(userId: string, meta: { ip?: string; userAgent?: string }) {
+export async function issueSession(userId: string, meta: { ip?: string; userAgent?: string }) {
   const token = randomToken(32);
   const csrf = randomToken(24);
   const expires = new Date(Date.now() + 14 * DAY * 1000).toISOString();
@@ -45,27 +66,34 @@ export async function createSession(userId: string, meta: { ip?: string; userAge
     user_agent: (meta.userAgent || "").slice(0, 300),
     created_at: now(),
   });
-  const jar = await cookies();
-  jar.set(COOKIE, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 14 * DAY,
-  });
   return { token, csrf };
+}
+
+export async function createSession(userId: string, meta: { ip?: string; userAgent?: string }) {
+  const issued = await issueSession(userId, meta);
+  try {
+    const jar = await cookies();
+    jar.set(SESSION_COOKIE, issued.token, sessionCookieOptions());
+  } catch {
+    /* Route handlers should also attach the cookie on the Response. */
+  }
+  return issued;
 }
 
 export async function clearSession() {
   const jar = await cookies();
-  const token = jar.get(COOKIE)?.value;
+  const token = jar.get(SESSION_COOKIE)?.value;
   if (token) await run("DELETE FROM sessions WHERE token_hash = ?", [sha256(token)]);
-  jar.set(COOKIE, "", { httpOnly: true, path: "/", maxAge: 0 });
+  try {
+    jar.set(SESSION_COOKIE, "", sessionCookieOptions(0));
+  } catch {
+    /* Route handlers should also clear the cookie on the Response. */
+  }
 }
 
 export async function getSession(): Promise<SessionUser | null> {
   const jar = await cookies();
-  const token = jar.get(COOKIE)?.value;
+  const token = jar.get(SESSION_COOKIE)?.value;
   if (!token) return null;
   const row = await one<any>(
     `SELECT s.csrf_token, s.expires_at, u.id, u.email, u.full_name, u.role, u.status, u.email_verified, u.must_change_password, u.avatar_url, u.mobile, u.deleted_at

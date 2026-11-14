@@ -20,7 +20,7 @@ export function AdminSection({ section, settings, integrationStatus }: { section
     { key: "about_html", label: "About page", area: true }, { key: "privacy_html", label: "Privacy policy", area: true }, { key: "terms_html", label: "Terms", area: true }, { key: "refund_html", label: "Refund policy", area: true },
     { key: "completion_threshold", label: "Lesson completion percent" }, { key: "lock_completed_lessons", label: "Lock completed lessons (1 or 0)" },
   ]} />;
-  if (section === "branding") return <SettingsForm values={settings} keys={[{ key: "logo_url", label: "Logo URL" }, { key: "logo_dark_url", label: "Dark logo URL" }, { key: "logo_light_url", label: "Light logo URL" }, { key: "favicon_url", label: "Favicon URL" }, { key: "logo_height", label: "Logo height (px)" }, { key: "logo_bg", label: "Logo background" }]} />;
+  if (section === "branding") return <div><h1 className="mb-4 font-display text-4xl text-navy">Logo & branding</h1><SettingsForm values={settings} keys={[{ key: "logo_url", label: "Logo", image: true }, { key: "logo_dark_url", label: "Dark logo", image: true }, { key: "logo_light_url", label: "Light logo", image: true }, { key: "favicon_url", label: "Favicon", image: true }, { key: "logo_height", label: "Logo height (px)" }, { key: "logo_bg", label: "Logo background" }]} /></div>;
   if (section === "security") return <SecurityPanel status={integrationStatus} />;
   if (section === "roles") return <RolesEditor />;
   return <p>This section is not available.</p>;

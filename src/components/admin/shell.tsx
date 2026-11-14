@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
+import { ImageUploadField, MediaLibraryUpload } from "./image-upload";
 
 const links = [
   ["dashboard", "Dashboard"], ["settings", "Website Settings"], ["branding", "Logo & Branding"], ["homepage", "Homepage"],
@@ -38,8 +39,13 @@ export function ResourceManager({ resource }: { resource: string }) {
   const [message, setMessage] = useState("");
   async function load(page = 1) {
     const res = await fetch(`/api/admin/resource/${resource}?page=${page}&q=${encodeURIComponent(q)}`);
-    const body = await res.json();
-    if (!res.ok) setMessage(body.error); else setData(body);
+    const body = await res.json().catch(() => ({ error: "Could not load this section." }));
+    if (!res.ok) {
+      setMessage(body.error || "Could not load this section.");
+      setData({ title: resource, fields: [], rows: [], allowCreate: false, allowDelete: false });
+      return;
+    }
+    setData(body);
   }
   useEffect(() => { void load(); }, [resource]);
   async function save(event: FormEvent<HTMLFormElement>) {
@@ -56,14 +62,9 @@ export function ResourceManager({ resource }: { resource: string }) {
     setMessage(res.ok ? "Saved." : body.error);
     if (res.ok) { setEdit(null); await load(); }
   }
-  async function upload(field: string, file: File) {
-    const form = new FormData(); form.set("file", file);
-    const res = await fetch("/api/admin/media", { method: "POST", body: form });
-    const body = await res.json();
-    if (!res.ok) { setMessage(body.error); return; }
-    setEdit((current: any) => ({ ...(current || {}), [field]: body.url }));
-  }
   if (!data) return <p>Loading…</p>;
+  const listFields = (data.fields || []).filter((field: any) => field.list);
+  const rows = Array.isArray(data.rows) ? data.rows : [];
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -72,10 +73,11 @@ export function ResourceManager({ resource }: { resource: string }) {
       </div>
       <form onSubmit={(event) => { event.preventDefault(); void load(); }} className="mb-4 flex gap-2"><input value={q} onChange={(event) => setQ(event.target.value)} className="field" placeholder="Search" /><button className="btn-line">Search</button></form>
       {message ? <p className="mb-3 text-sm font-semibold text-navy">{message}</p> : null}
-      <div className="overflow-auto card"><table className="min-w-full text-left text-sm"><thead className="bg-navy text-white"><tr>{data.fields.filter((field: any) => field.list).map((field: any) => <th key={field.name} className="px-3 py-2">{field.label}</th>)}<th className="px-3 py-2">Actions</th></tr></thead>
-        <tbody>{data.rows.map((row: any) => <tr key={row.id} className="border-t"><td className="px-3 py-2 font-mono text-xs">{row.id.slice(0, 8)}</td>{data.fields.filter((field: any) => field.list && field.name !== "id").slice(0, 4).map((field: any) => <td key={field.name} className="px-3 py-2">{String(row[field.name] ?? "").slice(0, 80)}</td>)}<td className="px-3 py-2"><button className="font-bold text-royal" onClick={() => setEdit(row)}>Edit</button>{data.allowDelete ? <button className="ml-3 font-bold text-red-700" onClick={async () => { if (!confirm("Delete this record?")) return; await fetch(`/api/admin/resource/${resource}/${row.id}`, { method: "DELETE" }); await load(); }}>Delete</button> : null}</td></tr>)}</tbody>
+      {resource === "media" ? <MediaLibraryUpload onUploaded={() => void load()} /> : null}
+      <div className="overflow-auto card"><table className="min-w-full text-left text-sm"><thead className="bg-navy text-white"><tr><th className="px-3 py-2">ID</th>{listFields.map((field: any) => <th key={field.name} className="px-3 py-2">{field.label}</th>)}<th className="px-3 py-2">Actions</th></tr></thead>
+        <tbody>{rows.map((row: any) => <tr key={row.id} className="border-t"><td className="px-3 py-2 font-mono text-xs">{String(row.id || "").slice(0, 8)}</td>{listFields.map((field: any) => <td key={field.name} className="px-3 py-2">{field.type === "image" && row[field.name] ? <img src={row[field.name]} alt="" className="h-12 w-20 rounded-lg object-cover" /> : String(row[field.name] ?? "").slice(0, 80)}</td>)}<td className="px-3 py-2">{data.fields?.length ? <button className="font-bold text-royal" onClick={() => setEdit(row)}>Edit</button> : null}{data.allowDelete ? <button className="ml-3 font-bold text-red-700" onClick={async () => { if (!confirm("Delete this record?")) return; await fetch(`/api/admin/resource/${resource}/${row.id}`, { method: "DELETE" }); await load(); }}>Delete</button> : null}</td></tr>)}</tbody>
       </table></div>
-      {edit ? <form onSubmit={save} className="card mt-4 space-y-3 p-4"><h2 className="text-xl font-extrabold">{edit.id ? "Edit" : "Create"}</h2>{data.fields.map((field: any) => <label key={field.name} className="block"><span className="label">{field.label}</span>{field.type === "textarea" ? <textarea name={field.name} defaultValue={edit[field.name] || ""} className="field" rows={4} /> : field.type === "boolean" ? <input name={field.name} type="checkbox" defaultChecked={Boolean(edit[field.name])} /> : field.type === "select" ? <select name={field.name} defaultValue={edit[field.name] || ""} className="field">{(field.options || []).map((option: any) => <option key={option.value} value={option.value}>{option.label}</option>)}</select> : field.type === "image" ? <span className="flex gap-2"><input name={field.name} value={edit[field.name] || ""} onChange={(event) => setEdit({ ...edit, [field.name]: event.target.value })} className="field" /><input type="file" onChange={(event) => event.target.files?.[0] && upload(field.name, event.target.files[0])} /></span> : <input name={field.name} type={field.type === "number" || field.type === "money" ? "number" : field.type === "date" ? "date" : "text"} step="0.01" defaultValue={edit[field.name] ?? ""} className="field" />}</label>)}<div className="flex gap-2"><button className="btn-orange">Save</button><button type="button" className="btn-line" onClick={() => setEdit(null)}>Close</button></div></form> : null}
+      {edit ? <form onSubmit={save} className="card mt-4 space-y-3 p-4"><h2 className="text-xl font-extrabold">{edit.id ? "Edit" : "Create"}</h2>{data.fields.map((field: any) => field.type === "image" ? <div key={field.name}><span className="label">{field.label}</span><ImageUploadField name={field.name} required={field.required} value={edit[field.name] || ""} onChange={(url) => setEdit({ ...edit, [field.name]: url })} /></div> : <label key={field.name} className="block"><span className="label">{field.label}</span>{field.type === "textarea" ? <textarea name={field.name} defaultValue={edit[field.name] || ""} className="field" rows={4} /> : field.type === "boolean" ? <input name={field.name} type="checkbox" defaultChecked={Boolean(edit[field.name])} /> : field.type === "select" ? <select name={field.name} defaultValue={edit[field.name] || ""} className="field">{(field.options || []).map((option: any) => <option key={option.value} value={option.value}>{option.label}</option>)}</select> : <input name={field.name} type={field.type === "number" || field.type === "money" ? "number" : field.type === "date" ? "date" : "text"} step="0.01" defaultValue={edit[field.name] ?? ""} className="field" />}</label>)}<div className="flex gap-2"><button className="btn-orange">Save</button><button type="button" className="btn-line" onClick={() => setEdit(null)}>Close</button></div></form> : null}
     </div>
   );
 }
@@ -108,27 +110,25 @@ export function VideoManager() {
 export function StoragePanel() {
   const [data, setData] = useState<any>(null);
   useEffect(() => { fetch("/api/admin/storage").then((res) => res.json()).then(setData); }, []);
-  if (!data?.total) return <p>{data?.error || "Checking disk…"}</p>;
+  if (!data) return <p>Checking disk…</p>;
+  if (data.error) return <p className="font-semibold text-red-700">{data.error}</p>;
+  if (!data.total) return <p className="card p-5">Disk capacity could not be read on this computer. Uploads can still work; storage totals will appear once the disk reports capacity.</p>;
   const gb = (n: number) => `${(n / 1024 / 1024 / 1024).toFixed(1)} GB`;
   return <div><h1 className="font-display text-4xl text-navy">Video storage</h1><div className="mt-6 grid gap-4 md:grid-cols-4">{[["Capacity", gb(data.total)], ["Used", gb(data.used)], ["Free", gb(data.free)], ["Videos", gb(data.videoBytes)]].map(([label, value]) => <article key={label} className="card p-4"><p className="text-sm text-slate-500">{label}</p><p className="text-2xl font-extrabold text-navy">{value}</p></article>)}</div>{data.warning ? <p className="mt-4 rounded-2xl bg-cream p-4 font-bold text-navy">Disk usage is at {data.percent}%. Free space before adding more lectures.</p> : <p className="mt-4 text-sm text-slate-600">Disk usage is {data.percent}%. Uploads are blocked when the file would fill the disk.</p>}<p className="mt-2 text-sm">Stored on {data.path}. {data.videoCount} video records. This screen reads the real disk; it does not assume 1 TB is installed.</p></div>;
 }
 
-export function SimpleAction({ title, children }: { title: string; children: React.ReactNode }) {
-  const router = useRouter();
-  return <div><h1 className="font-display text-4xl text-navy">{title}</h1><div className="mt-4">{children}</div><button className="hidden" onClick={() => router.refresh()} /></div>;
-}
-
-export function SettingsForm({ keys, values }: { keys: { key: string; label: string; area?: boolean }[]; values: Record<string, string> }) {
+export function SettingsForm({ keys, values }: { keys: { key: string; label: string; area?: boolean; image?: boolean }[]; values: Record<string, string> }) {
   const [message, setMessage] = useState("");
+  const [fields, setFields] = useState<Record<string, string>>(values);
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const payload: Record<string, string> = {};
-    keys.forEach((item) => { payload[item.key] = String(form.get(item.key) || ""); });
+    keys.forEach((item) => { payload[item.key] = String(form.get(item.key) || fields[item.key] || ""); });
     const res = await fetch("/api/admin/settings", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
     setMessage(res.ok ? "Saved." : "Could not save.");
   }
-  return <form onSubmit={onSubmit} className="card space-y-3 p-5">{keys.map((item) => <label key={item.key} className="block"><span className="label">{item.label}</span>{item.area ? <textarea name={item.key} defaultValue={values[item.key] || ""} className="field" rows={5} /> : <input name={item.key} defaultValue={values[item.key] || ""} className="field" />}</label>)}<button className="btn-orange">Save</button>{message ? <p className="font-semibold">{message}</p> : null}</form>;
+  return <form onSubmit={onSubmit} className="card space-y-3 p-5">{keys.map((item) => item.image ? <div key={item.key}><span className="label">{item.label}</span><ImageUploadField name={item.key} value={fields[item.key] || ""} onChange={(url) => setFields((current) => ({ ...current, [item.key]: url }))} /></div> : <label key={item.key} className="block"><span className="label">{item.label}</span>{item.area ? <textarea name={item.key} defaultValue={values[item.key] || ""} className="field" rows={5} /> : <input name={item.key} defaultValue={values[item.key] || ""} className="field" />}</label>)}<button className="btn-orange">Save</button>{message ? <p className="font-semibold">{message}</p> : null}</form>;
 }
 
 export function SecurityPanel({ status }: { status: any }) {

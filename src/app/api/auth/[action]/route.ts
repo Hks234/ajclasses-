@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { clearSession, checkPassword, createSession, getSession, hashPassword, loginBlocked, recordLogin } from "@/lib/auth";
+import { applySessionCookie, clearSession, clearSessionCookie, checkPassword, createSession, getSession, hashPassword, loginBlocked, recordLogin } from "@/lib/auth";
 import { all, insert, one, ready, run } from "@/lib/db";
 import { queueTemplate } from "@/lib/email";
 import { bad, json, originBlock } from "@/lib/http";
@@ -72,14 +72,14 @@ export async function POST(req: Request, ctx: { params: Promise<{ action: string
     }
     if (user.status === "suspended") return bad("This account is suspended.", 403);
     await recordLogin(email, ip, true);
-    await createSession(user.id, { ip, userAgent: req.headers.get("user-agent") || "" });
+    const issued = await createSession(user.id, { ip, userAgent: req.headers.get("user-agent") || "" });
     if (user.role === "admin") await run("UPDATE admin_users SET last_login_at = ? WHERE user_id = ?", [now(), user.id]);
-    return json({ ok: true, role: user.role, mustChangePassword: Boolean(user.must_change_password) });
+    return applySessionCookie(json({ ok: true, role: user.role, mustChangePassword: Boolean(user.must_change_password) }), issued.token);
   }
 
   if (action === "logout") {
     await clearSession();
-    return json({ ok: true });
+    return clearSessionCookie(json({ ok: true }));
   }
 
   if (action === "resend") {

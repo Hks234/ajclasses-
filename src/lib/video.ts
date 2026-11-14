@@ -21,10 +21,14 @@ export function maxUploadBytes() {
 }
 
 export function diskUsage(target = storageRoot()) {
-  const stats = fs.statfsSync(target);
-  const total = Number(stats.blocks) * Number(stats.bsize);
-  const free = Number(stats.bavail) * Number(stats.bsize);
-  return { total, free, used: Math.max(0, total - free), path: target };
+  try {
+    const stats = fs.statfsSync(target);
+    const total = Number(stats.blocks) * Number(stats.bsize);
+    const free = Number(stats.bavail) * Number(stats.bsize);
+    return { total, free, used: Math.max(0, total - free), path: target };
+  } catch {
+    return { total: 0, free: 0, used: 0, path: target };
+  }
 }
 
 export function detectVideo(buffer: Buffer) {
@@ -88,7 +92,7 @@ export function inside(root: string, target: string) {
 
 function runProcess(bin: string, args: string[]) {
   return new Promise<string>((resolve, reject) => {
-    const child = spawn(bin, args, { windowsHide: true });
+    const child = spawn(/*turbopackIgnore: true*/ bin, args, { windowsHide: true });
     let stderr = "";
     child.stderr.on("data", (chunk) => { stderr += chunk.toString(); });
     child.on("error", reject);
@@ -98,7 +102,7 @@ function runProcess(bin: string, args: string[]) {
 
 export async function probe(file: string) {
   const output = await new Promise<string>((resolve, reject) => {
-    const child = spawn(ffprobeBin(), ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height:format=duration", "-of", "json", file], { windowsHide: true });
+    const child = spawn(/*turbopackIgnore: true*/ ffprobeBin(), ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height:format=duration", "-of", "json", file], { windowsHide: true });
     let stdout = "";
     let stderr = "";
     child.stdout.on("data", (c) => { stdout += c.toString(); });
@@ -121,7 +125,7 @@ export async function transcodeVideo(videoId: string) {
   await run("UPDATE video_assets SET status = 'processing', error = NULL WHERE id = ?", [videoId]);
   try {
     const meta = await probe(video.original_path);
-    const hlsDir = path.join(storageRoot(), "hls", videoId);
+    const hlsDir = path.join(/*turbopackIgnore: true*/ storageRoot(), "hls", videoId);
     fs.mkdirSync(hlsDir, { recursive: true });
     const heights = [360, 480, 720, 1080].filter((h) => meta.height >= h);
     const renditions = heights.length ? heights : [Math.max(144, meta.height || 360)];

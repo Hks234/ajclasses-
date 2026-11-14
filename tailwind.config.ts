@@ -14,9 +14,9 @@ const config: Config = {
         ink: "#17243A",
       },
       fontFamily: {
-        sans: ["var(--font-manrope)", "var(--font-inter)", "sans-serif"],
+        sans: ["var(--font-playfair)", "Georgia", "serif"],
         display: ["var(--font-playfair)", "Georgia", "serif"],
-        jakarta: ["var(--font-jakarta)", "sans-serif"],
+        serif: ["var(--font-playfair)", "Georgia", "serif"],
       },
       boxShadow: {
         card: "0 18px 50px rgba(16, 42, 86, 0.08)",

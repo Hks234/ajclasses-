@@ -10,7 +10,7 @@
 }
 
 html { scroll-behavior: smooth; }
-body { background: #fff; color: #17243a; }
+body { background: #fff; color: #17243a; font-family: var(--font-playfair), "Playfair Display", Georgia, serif; }
 ::selection { background: #ff7900; color: white; }
 
 .container-aj { @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8; }

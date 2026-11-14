@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const session = req.cookies.get("aj_session")?.value;
   const { pathname } = req.nextUrl;
+  if (pathname === "/admin" || pathname === "/admin/") {
+    return NextResponse.redirect(new URL(session ? "/admin/dashboard" : "/admin/login", req.url));
+  }
   if (pathname.startsWith("/admin") && pathname !== "/admin/login" && !session) {
     return NextResponse.redirect(new URL("/admin/login", req.url));
   }
@@ -15,4 +18,4 @@ export function middleware(req: NextRequest) {
   return NextResponse.next();
 }
 
-export const config = { matcher: ["/admin/:path*", "/student/:path*"] };
+export const config = { matcher: ["/admin", "/admin/:path*", "/student", "/student/:path*"] };

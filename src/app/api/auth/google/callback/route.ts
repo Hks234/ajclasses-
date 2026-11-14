@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { createSession } from "@/lib/auth";
+import { applySessionCookie, createSession } from "@/lib/auth";
 import { insert, one, ready } from "@/lib/db";
 import { readIntegrations } from "@/lib/secrets";
 import { id, now, pageUrl } from "@/lib/utils";
@@ -58,6 +58,7 @@ export async function GET(req: Request) {
     await insert("student_profiles", { user_id: userId, preferred_course: null, city: null, bio: null });
     user = { id: userId };
   }
-  await createSession(user.id, { userAgent: req.headers.get("user-agent") || "" });
-  return NextResponse.redirect(pageUrl("/student/dashboard"));
+  const issued = await createSession(user.id, { userAgent: req.headers.get("user-agent") || "" });
+  const redirect = NextResponse.redirect(pageUrl("/student/dashboard"));
+  return applySessionCookie(redirect, issued.token);
 }

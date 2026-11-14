@@ -38,7 +38,7 @@ export async function POST(req: Request) {
     if (!size || size < 1) return bad("Choose a video file.");
     if (size > maxUploadBytes()) return bad("This video is larger than the configured upload limit.");
     const disk = diskUsage();
-    if (size > disk.free - 1024 * 1024 * 1024) return bad("There is not enough free disk space for this upload.");
+    if (disk.total > 0 && size > Math.max(0, disk.free - 1024 * 1024 * 1024)) return bad("There is not enough free disk space for this upload.");
     const uploadId = id();
     const temp = path.join(storageRoot(), "tmp", `${uploadId}.part`);
     fs.writeFileSync(temp, Buffer.alloc(0));
